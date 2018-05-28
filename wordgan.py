@@ -3,18 +3,56 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+import pickle
 
-
-def process_glove(pathname):
-	pass # create glove embeddings for necessary words
+# configuration dataclass
+@dataclass
+class Config:
+	pickle_path: str
+	pretrain_path: str
+	embed_dim: int
 
 
 class Dataset:
-	def __init__(self, pathname):
-		pass # import and clean dataset
+	def __init__(self, data_path, config):
 		self.vocab_size = 0
 		self.word2id = dict()
 		self.id2word = list()
+		self.embed_dim = config.embed_dim
+		self.config = config
+
+	def _init_pretrained_embeddings(self):
+		try:
+			# get pickle
+			self.config.pickle_path
+		except IOError:
+			self.word_embeddings = np.empty(self.vocab_size, self.word_dim)
+				with open(self.config.pretrain_path, 'r') as embedding_file:
+					# pickle word embeddings
+					remaining_words = set(self.word2id.keys())
+					for line in embedding_file:
+						# process line, see if in vocabulary
+						tokens = line.split()
+						assert len(tokens) == self.word_dim + 1
+						try:
+							index = self.word2id[tokens[0]]
+							self.word_embeddings[index] = np.array(float(token) for token in tokens[1:])
+							remaining_words.remove(tokens[0])
+						except KeyError:
+							continue
+
+				for word in remaining_words:
+					# initialize all unfound words
+					self.word_embeddings[word] = np.random.uniform(self.word_dim)
+
+				# pickle as pickle path
+
+
+	def get_pretrained_embeddings(self):
+		if not self.word_embeddings:
+			self._init_pretrained_embeddings
+
+		return self.word_embeddings
 
 
 class WordGAN:
